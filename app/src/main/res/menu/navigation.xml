@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/navigation_exercise"
+        android:icon="@drawable/ic_exercise"
+        android:title="@string/exercise"
+        />
+
+    <item
+        android:id="@+id/navigation_report"
+        android:icon="@drawable/ic_report"
+        android:title="@string/report"
+        />
+
+    <item
+        android:id="@+id/navigation_extras"
+        android:icon="@drawable/ic_extras"
+        android:title="@string/extras"
+        />
+
+</menu>
