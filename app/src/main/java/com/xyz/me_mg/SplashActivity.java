@@ -11,13 +11,15 @@ import android.os.Bundle;
  *
  * 5 seconds
  *
+ * Uses example code:
+ * https://www.coderefer.com/android-splash-screen-example-tutorial/
+ *
  */
 
 public class SplashActivity extends Activity{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // TODO Auto-generated method stub
         super.onCreate(savedInstanceState);
         setContentView(R.layout.splash);
 
@@ -38,7 +40,6 @@ public class SplashActivity extends Activity{
 
     @Override
     protected void onPause() {
-        // TODO Auto-generated method stub
         super.onPause();
         finish();
     }

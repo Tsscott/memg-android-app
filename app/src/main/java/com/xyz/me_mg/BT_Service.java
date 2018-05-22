@@ -21,9 +21,20 @@ import java.util.UUID;
 
 /**
  * Created by timscott on 29/04/2018.
+ *
+ * Bluetooth Service Class
+ *
+ * This service is bound to both MainActivity & GraphActivty
+ *
+ * This code largely references this tutorial:
+ * https://github.com/mitchtabian/Sending-and-Receiving-Data-with-Bluetooth/tree/master/Bluetooth-Communication
+ *
  */
 
 public class BT_Service extends Service {
+
+    static final String TAG = "BT_Service";
+
     // Binder given to clients
     private final IBinder mBinder = new LocalBinder();
 
@@ -36,7 +47,6 @@ public class BT_Service extends Service {
 
     //On toggle
     public Boolean BTopen = false; ;
-
 
     BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     String status;
@@ -56,6 +66,7 @@ public class BT_Service extends Service {
      */
     public class LocalBinder extends Binder {
         BT_Service getService() {
+            Log.d(TAG, "getService: ");
             // Return this instance of LocalService so clients can call public methods
             return BT_Service.this;
         }
@@ -63,6 +74,7 @@ public class BT_Service extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
+        Log.d(TAG, "onBind: ");
         return mBinder;
     }
 
@@ -70,12 +82,12 @@ public class BT_Service extends Service {
     public void setNumber(int num){
         number = num;
     }
-
     public int getNumber(){
         return number;
     }
 
     public void onDestroy(){
+        Log.d(TAG, "onDestroy: ");
 
         if(BTopen) {
             try {
@@ -85,25 +97,24 @@ public class BT_Service extends Service {
         }
     }
 
-    void findBT()
+    Boolean findBT()
     {
-        Log.d("Debug","FindBT");
+        Log.d(TAG, "findBT: ");
+
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if(mBluetoothAdapter == null)
         {
-            status = "Bluetooth is not Enabled.";
+            // BT not supported on device
+            status = "Bluetooth is not Supported.";
             Toast.makeText(getApplicationContext(),status,Toast.LENGTH_LONG).show();
+            return false;
         }
 
         if(!mBluetoothAdapter.isEnabled())
         {
-            Intent enableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            if(getApplicationContext() instanceof Activity){
-                ((Activity)getApplicationContext()).startActivityForResult(enableBluetooth, 0);
-            }
-            else{
-                Log.d("BluetoothService", "hmmm context is not an activity.... trouble");
-            }
+            status = "Enable Bluetooth!";
+            Toast.makeText(getApplicationContext(),status,Toast.LENGTH_LONG).show();
+            return false;
         }
 
         Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
@@ -114,43 +125,86 @@ public class BT_Service extends Service {
                 if(device.getName().equals("Casa del Tim"))
                 {
                     mmDevice = device;
-                    break;
+                    return true;
                 }
                 else
                 {
-                    status = "Me-MG not found!.";
+                    status = "Me-MG not found!";
                     Toast.makeText(getApplicationContext(),status,Toast.LENGTH_LONG).show();
                 }
             }
         }
+
+        return false;
     }
 
 
 
 
-    void sendData() throws IOException
-    {
-//        String msg = myTextbox.getText().toString();
-//        msg += "\n";
-//        mmOutputStream.write(msg.getBytes());
+    void sendData(String msg) throws IOException {
+        Log.d(TAG, "sendData: ");
+
+        msg += "\n";
+        mmOutputStream.write(msg.getBytes());
     }
 
-    void openBT() throws IOException
-    {
+    void resetConnection() throws IOException {
+        Log.d(TAG, "resetConnection: ");
+
+        if (mmInputStream != null) {
+            try {mmInputStream.close();} catch (Exception e) {}
+            mmInputStream = null;
+        }
+
+        if (mmOutputStream != null) {
+            try {mmOutputStream.close();} catch (Exception e) {}
+            mmOutputStream = null;
+        }
+
+        if (mmSocket != null) {
+            try {mmSocket.close();} catch (Exception e) {}
+            mmSocket = null;
+        }
+
         UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); //Standard SerialPortService ID
         mmSocket = mmDevice.createRfcommSocketToServiceRecord(uuid);
         mmSocket.connect();
         mmOutputStream = mmSocket.getOutputStream();
         mmInputStream = mmSocket.getInputStream();
-        stopWorker = false;
-        status = "Me-MG Connected!";
-        Toast.makeText(getApplicationContext(),status,Toast.LENGTH_LONG).show();
-        BTopen = true;
+
+    }
+
+
+    void openBT()
+    {
+        Log.d(TAG, "openBT: ");
+
+        new Thread(new Runnable() {
+
+                @Override
+                public void run() {
+
+                    try{
+                        UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); //Standard SerialPortService ID
+                        mmSocket = mmDevice.createRfcommSocketToServiceRecord(uuid);
+                        mmSocket.connect();
+                        mmOutputStream = mmSocket.getOutputStream();
+                        mmInputStream = mmSocket.getInputStream();
+                        stopWorker = false;
+                        BTopen = true;
+                    }
+                    catch(IOException e){
+                        Log.d(TAG, "OpenBT ERROR! ");
+                    }
+
+                }
+            }).start();
+
     }
 
     void closeBT() throws IOException
     {
-        Log.d("Debug","CloseBT");
+        Log.d(TAG, "closeBT: ");
         stopWorker = true;
         mmOutputStream.close();
         mmInputStream.close();
@@ -160,21 +214,10 @@ public class BT_Service extends Service {
         BTopen = false;
     }
 
-    InputStream getMmInputStream() throws Exception{
-        return mmSocket.getInputStream() ;
-    }
-
-    Boolean getStopWorker(){
-        return stopWorker;
-    }
-
-    void setStopWorker(boolean set){
-        stopWorker = set;
-    }
 
     void beginListenForData()
     {
-        Log.d("Graph","begin listen");
+        Log.d(TAG, "beginListenForData: ");
 
         final Handler handler = new Handler();
         final byte delimiter = 10; //This is the ASCII code for a newline character
@@ -190,6 +233,7 @@ public class BT_Service extends Service {
                     try
                     {
                         int bytesAvailable = mmInputStream.available();
+
                         if(bytesAvailable > 0)
                         {
                             byte[] packetBytes = new byte[bytesAvailable];

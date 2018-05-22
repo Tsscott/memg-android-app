@@ -11,4 +11,9 @@
     <string name="begin">Begin Session</string>
     <string name="stop">Stop</string>
     <string name="parameters">Parameters:</string>
+    <string name="duration">Duration:</string>
+    <string name="reps_percent">% Reps Completed:</string>
+    <string name="what_press">What\'s the pressure??</string>
+    <string name="hPA">hectopascal (hPa)</string>
+    <string name="credits">Me-MG Android App by Tim Scott 2018</string>
 </resources>
